@@ -55,6 +55,16 @@
         #weatherResult p {
             margin: 5px 0;
         }
+
+        .loading {
+            display: none;
+            font-size: 18px;
+            color: #007BFF;
+        }
+
+        .error {
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -62,33 +72,90 @@
         <h1>Weather App</h1>
         <input type="text" id="cityInput" placeholder="Enter city name">
         <button id="getWeatherBtn">Get Weather</button>
+        <div class="loading" id="loading">Loading...</div>
         <div id="weatherResult"></div>
     </div>
     <script>
+        const apiKey = 'YOUR_API_KEY';
+
         document.getElementById('getWeatherBtn').addEventListener('click', function() {
             const city = document.getElementById('cityInput').value;
-            const apiKey = 'YOUR_API_KEY';
+            getWeather(city);
+        });
+
+        function getWeather(city) {
             const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+            showLoading(true);
 
             fetch(apiUrl)
                 .then(response => response.json())
                 .then(data => {
+                    showLoading(false);
                     if (data.cod === 200) {
-                        const weatherResult = document.getElementById('weatherResult');
-                        weatherResult.innerHTML = `
-                            <h2>${data.name}</h2>
-                            <p>${data.weather[0].description}</p>
-                            <p>Temperature: ${data.main.temp}°C</p>
-                            <p>Humidity: ${data.main.humidity}%</p>
-                        `;
+                        displayWeather(data);
                     } else {
-                        alert('City not found');
+                        showError('City not found');
                     }
                 })
                 .catch(error => {
+                    showLoading(false);
+                    showError('Error fetching weather data');
                     console.error('Error fetching weather data:', error);
                 });
-        });
+        }
+
+        function displayWeather(data) {
+            const weatherResult = document.getElementById('weatherResult');
+            weatherResult.innerHTML = `
+                <h2>${data.name}</h2>
+                <p>${data.weather[0].description}</p>
+                <p>Temperature: ${data.main.temp}°C</p>
+                <p>Humidity: ${data.main.humidity}%</p>
+                <p>Wind Speed: ${data.wind.speed} m/s</p>
+                <p>Pressure: ${data.main.pressure} hPa</p>
+                <img src="http://openweathermap.org/img/wn/${data.weather[0].icon}.png" alt="Weather icon">
+            `;
+        }
+
+        function showLoading(isLoading) {
+            const loading = document.getElementById('loading');
+            if (isLoading) {
+                loading.style.display = 'block';
+            } else {
+                loading.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const weatherResult = document.getElementById('weatherResult');
+            weatherResult.innerHTML = `<p class="error">${message}</p>`;
+        }
+
+        // Geolocation
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+                showLoading(true);
+
+                fetch(apiUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        showLoading(false);
+                        if (data.cod === 200) {
+                            displayWeather(data);
+                        } else {
+                            showError('Location not found');
+                        }
+                    })
+                    .catch(error => {
+                        showLoading(false);
+                        showError('Error fetching weather data');
+                        console.error('Error fetching weather data:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
